@@ -129,7 +129,7 @@ describe("Claude Code goal command", () => {
     assert.equal(marketplace.plugins[0].source, "./plugins/goal");
 
     assert.equal(manifest.name, "goal");
-    assert.equal(manifest.version, "0.3.0");
+    assert.equal(manifest.version, "0.3.1");
     assert.equal(manifest.repository, "https://github.com/bullish0x/goal-cc");
 
     assert.match(pluginCommand, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/goal-helper\.mjs" invoke <<'__CLAUDE_GOAL_ARGUMENTS_5E2D8D9F__'/);
@@ -532,6 +532,43 @@ describe("Claude Code goal command", () => {
 
       const json = JSON.parse(runHelper(dbPath, ["status", "--json"]).stdout);
       assert.equal(json.notes.length, labels.length);
+      const got = json.notes.map((n) => n.text).sort();
+      assert.deepEqual(got, [...labels].sort());
+    });
+  });
+
+  it("does not lose notes under heavy concurrent contention (regression: Windows lock race)", async () => {
+    // Regression test for the writeFileSync({flag:"wx"}) empty-read race in
+    // withLock. With 12 contenders, on Windows the open-vs-unlink window
+    // briefly exposed an empty lock file to readers; the EEXIST handler used
+    // to declare that "stale" and unlink a valid lock, letting two writers
+    // through and dropping a note. Heavier concurrency makes the race more
+    // likely to surface if the fix regresses.
+    await withTempGoalDb(async (dbPath) => {
+      const result = runHelper(dbPath, ["invoke", "heavy contention host"]);
+      assert.equal(result.status, 0, result.stderr);
+
+      const env = {
+        ...process.env,
+        CLAUDE_GOAL_DB: dbPath,
+        CLAUDE_GOAL_SESSION_ID: "test-session"
+      };
+      const labels = Array.from({ length: 12 }, (_, i) => `n-${i.toString().padStart(2, "0")}`);
+      const procs = labels.map((label) =>
+        new Promise((resolve) => {
+          const child = spawn(process.execPath, [helperPath, "note", label], { env });
+          let stderr = "";
+          child.stderr.on("data", (d) => { stderr += d; });
+          child.on("exit", (code) => resolve({ code, label, stderr }));
+        })
+      );
+      const results = await Promise.all(procs);
+      for (const r of results) {
+        assert.equal(r.code, 0, `concurrent note ${r.label} must succeed; stderr: ${r.stderr}`);
+      }
+
+      const json = JSON.parse(runHelper(dbPath, ["status", "--json"]).stdout);
+      assert.equal(json.notes.length, labels.length, "every note must persist");
       const got = json.notes.map((n) => n.text).sort();
       assert.deepEqual(got, [...labels].sort());
     });

@@ -1,7 +1,7 @@
 {
   "name": "goal",
   "description": "Durable /goal command with Stop-hook continuation, notes, deadlines, history, and shell-safe objective capture.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "Bullish0x"
   },

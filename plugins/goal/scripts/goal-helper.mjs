@@ -121,7 +121,11 @@ function withLock(fn) {
       writeFileSync(lockPath, JSON.stringify({ pid: process.pid, startedAt: Date.now() }), { flag: "wx" });
       acquired = true;
     } catch (error) {
-      if (error.code !== "EEXIST") throw error;
+      // EEXIST: lock currently held. EPERM/EBUSY: Windows can return these
+      // instead of EEXIST when another process is concurrently creating or
+      // unlinking the lock file (a transient open-vs-unlink race). Treat
+      // both as contended and retry; only re-throw genuinely unexpected codes.
+      if (error.code !== "EEXIST" && error.code !== "EPERM" && error.code !== "EBUSY") throw error;
       let stale = false;
       let observedLock = "";
       let observedMeta = null;
@@ -130,7 +134,19 @@ function withLock(fn) {
         observedMeta = JSON.parse(observedLock);
         stale = Date.now() - (observedMeta.startedAt || 0) > LOCK_STALE_MS || !isPidAlive(observedMeta.pid);
       } catch {
-        stale = true;
+        // Read or parse failed. On Windows there is a brief window during
+        // writeFileSync({flag:"wx"}) where another process can observe the
+        // lock as empty or not-yet-readable. Treating that as stale would
+        // unlink a valid lock and let two writers through. Use the file's
+        // mtime as the tiebreaker: only declare stale if the file is older
+        // than LOCK_STALE_MS, which catches genuinely abandoned/corrupt locks
+        // without breaking the common contention case.
+        try {
+          const stat = statSync(lockPath);
+          stale = Date.now() - stat.mtimeMs > LOCK_STALE_MS;
+        } catch {
+          // file vanished between EEXIST and stat -- retry the wx-write
+        }
       }
       if (stale) {
         try {
