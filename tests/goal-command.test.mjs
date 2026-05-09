@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { access, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -14,6 +14,7 @@ const pluginHelperPath = path.join(root, "plugins", "goal", "scripts", "goal-hel
 const pluginHooksPath = path.join(root, "plugins", "goal", "hooks", "hooks.json");
 const pluginManifestPath = path.join(root, "plugins", "goal", ".claude-plugin", "plugin.json");
 const marketplacePath = path.join(root, ".claude-plugin", "marketplace.json");
+const lifecyclePath = path.join(root, "scripts", "goal-lifecycle.mjs");
 const readmePath = path.join(root, "README.md");
 const stateFormatPath = path.join(root, "goal-state", "state-format.md");
 const goalReadmePath = path.join(root, "goal-state", "README.md");
@@ -28,6 +29,15 @@ async function withTempGoalDb(fn) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "goal-helper-test-"));
   try {
     return await fn(path.join(dir, "goals.json"), dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+async function withTempProject(fn) {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "goal-project-test-"));
+  try {
+    return await fn(dir);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -53,6 +63,31 @@ function runHelper(dbPath, args, options = {}) {
   });
 }
 
+function runLifecycle(args, options = {}) {
+  return spawnSync(process.execPath, [lifecyclePath, ...args], {
+    cwd: options.cwd ?? root,
+    text: true,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ...(options.env ?? {})
+    }
+  });
+}
+
+function flattenStopHooks(settings) {
+  return settings.hooks?.Stop?.flatMap((entry) => entry.hooks ?? []) ?? [];
+}
+
+function goalHookCount(settings) {
+  return flattenStopHooks(settings).filter((hook) =>
+    hook.type === "command"
+      && typeof hook.command === "string"
+      && hook.command.includes("goal-helper.mjs")
+      && (hook.command.includes(".claude") || hook.command.includes("CLAUDE_PROJECT_DIR"))
+  ).length;
+}
+
 describe("Claude Code goal command", () => {
   it("has the required project command, settings, helper, and state files", async () => {
     await Promise.all([
@@ -64,6 +99,7 @@ describe("Claude Code goal command", () => {
       access(pluginHooksPath),
       access(pluginManifestPath),
       access(marketplacePath),
+      access(lifecyclePath),
       access(stateFormatPath),
       access(goalReadmePath)
     ]);
@@ -93,7 +129,7 @@ describe("Claude Code goal command", () => {
     assert.equal(marketplace.plugins[0].source, "./plugins/goal");
 
     assert.equal(manifest.name, "goal");
-    assert.equal(manifest.version, "0.1.1");
+    assert.equal(manifest.version, "0.2.0");
     assert.equal(manifest.repository, "https://github.com/bullish0x/goal-cc");
 
     assert.match(pluginCommand, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/goal-helper\.mjs" invoke <<'__CLAUDE_GOAL_ARGUMENTS_5E2D8D9F__'/);
@@ -116,6 +152,108 @@ describe("Claude Code goal command", () => {
       stopHooks.some((hook) => hook.type === "command" && hook.command.includes("goal-helper.mjs") && hook.command.includes("CLAUDE_PROJECT_DIR")),
       true
     );
+  });
+
+  it("installs, updates, and uninstalls direct project files without damaging settings", async () => {
+    await withTempProject(async (project) => {
+      const claudeDir = path.join(project, ".claude");
+      await mkdir(claudeDir, { recursive: true });
+      const localSettingsPath = path.join(claudeDir, "settings.local.json");
+      const localSettingsText = `${JSON.stringify({ permissions: { allow: ["Bash(git status)"] } }, null, 2)}\n`;
+      await writeFile(localSettingsPath, localSettingsText);
+
+      const projectSettingsPath = path.join(claudeDir, "settings.json");
+      await writeFile(projectSettingsPath, JSON.stringify({
+        permissions: { allow: ["Bash(npm test)"] },
+        hooks: {
+          Stop: [
+            { hooks: [{ type: "command", command: "echo keep-stop-hook" }] }
+          ],
+          PreToolUse: [
+            { hooks: [{ type: "command", command: "echo keep-pre-tool-hook" }] }
+          ]
+        }
+      }, null, 2));
+
+      let result = runLifecycle(["install", "--project", project]);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /settings\.local: untouched/);
+      assert.equal(await fileText(localSettingsPath), localSettingsText);
+      assert.equal(await fileText(path.join(project, ".claude", "commands", "goal.md")), await fileText(commandPath));
+      assert.equal(await fileText(path.join(project, ".claude", "scripts", "goal-helper.mjs")), await fileText(helperPath));
+
+      let settings = JSON.parse(await fileText(projectSettingsPath));
+      assert.equal(settings.permissions.allow[0], "Bash(npm test)");
+      assert.equal(flattenStopHooks(settings).some((hook) => hook.command === "echo keep-stop-hook"), true);
+      assert.equal(settings.hooks.PreToolUse[0].hooks[0].command, "echo keep-pre-tool-hook");
+      assert.equal(goalHookCount(settings), 1);
+
+      await writeFile(path.join(project, ".claude", "scripts", "goal-helper.mjs"), "old helper\n");
+      settings.hooks.Stop.push({
+        hooks: [{ type: "command", command: "node .claude/scripts/goal-helper.mjs old" }]
+      });
+      await writeFile(projectSettingsPath, JSON.stringify(settings, null, 2));
+
+      result = runLifecycle(["update", "--project", project]);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /settings\.local: untouched/);
+      assert.equal(await fileText(localSettingsPath), localSettingsText);
+      assert.equal(await fileText(path.join(project, ".claude", "scripts", "goal-helper.mjs")), await fileText(helperPath));
+      settings = JSON.parse(await fileText(projectSettingsPath));
+      assert.equal(flattenStopHooks(settings).some((hook) => hook.command === "echo keep-stop-hook"), true);
+      assert.equal(goalHookCount(settings), 1, "update must replace stale managed hooks instead of duplicating them");
+
+      result = runLifecycle(["uninstall", "--project", project]);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /settings\.local: untouched/);
+      assert.equal(await fileText(localSettingsPath), localSettingsText);
+      await assert.rejects(access(path.join(project, ".claude", "commands", "goal.md")));
+      await assert.rejects(access(path.join(project, ".claude", "scripts", "goal-helper.mjs")));
+      settings = JSON.parse(await fileText(projectSettingsPath));
+      assert.equal(flattenStopHooks(settings).some((hook) => hook.command === "echo keep-stop-hook"), true);
+      assert.equal(settings.hooks.PreToolUse[0].hooks[0].command, "echo keep-pre-tool-hook");
+      assert.equal(goalHookCount(settings), 0);
+    });
+  });
+
+  it("uninstall preserves customized command and helper files unless forced", async () => {
+    await withTempProject(async (project) => {
+      await mkdir(path.join(project, ".claude", "commands"), { recursive: true });
+      await mkdir(path.join(project, ".claude", "scripts"), { recursive: true });
+      const localSettingsPath = path.join(project, ".claude", "settings.local.json");
+      const localSettingsText = "{\"custom\":\"local\"}\n";
+      await writeFile(localSettingsPath, localSettingsText);
+      await writeFile(path.join(project, ".claude", "commands", "goal.md"), "custom command\n");
+      await writeFile(path.join(project, ".claude", "scripts", "goal-helper.mjs"), "custom helper\n");
+      await writeFile(path.join(project, ".claude", "settings.json"), await fileText(settingsPath));
+
+      const result = runLifecycle(["uninstall", "--project", project]);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /skipped: .+customized/);
+      assert.equal(await fileText(localSettingsPath), localSettingsText);
+      assert.equal(await fileText(path.join(project, ".claude", "commands", "goal.md")), "custom command\n");
+      assert.equal(await fileText(path.join(project, ".claude", "scripts", "goal-helper.mjs")), "custom helper\n");
+      const settings = JSON.parse(await fileText(path.join(project, ".claude", "settings.json")));
+      assert.equal(goalHookCount(settings), 0);
+    });
+  });
+
+  it("does not partially install when settings.json is invalid", async () => {
+    await withTempProject(async (project) => {
+      await mkdir(path.join(project, ".claude"), { recursive: true });
+      const localSettingsPath = path.join(project, ".claude", "settings.local.json");
+      const localSettingsText = "{\"keep\":\"me\"}\n";
+      await writeFile(localSettingsPath, localSettingsText);
+      await writeFile(path.join(project, ".claude", "settings.json"), "{ not json");
+
+      const result = runLifecycle(["install", "--project", project]);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /No files were changed/);
+      assert.equal(await fileText(localSettingsPath), localSettingsText);
+      await assert.rejects(access(path.join(project, ".claude", "commands", "goal.md")));
+      await assert.rejects(access(path.join(project, ".claude", "scripts", "goal-helper.mjs")));
+      assert.equal(await fileText(path.join(project, ".claude", "settings.json")), "{ not json");
+    });
   });
 
   it("keeps Bash-facing runtime syntax compatible with Node 12", async () => {
@@ -1195,6 +1333,7 @@ describe("Claude Code goal command", () => {
       goalReadmePath,
       gitignorePath,
       readmePath,
+      lifecyclePath,
       path.join(root, "CHANGELOG.md"),
       path.join(root, "package.json"),
       path.join(root, "CONTRIBUTING.md"),
