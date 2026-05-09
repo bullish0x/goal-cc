@@ -14,6 +14,7 @@ const pluginHelperPath = path.join(root, "plugins", "goal", "scripts", "goal-hel
 const pluginHooksPath = path.join(root, "plugins", "goal", "hooks", "hooks.json");
 const pluginManifestPath = path.join(root, "plugins", "goal", ".claude-plugin", "plugin.json");
 const marketplacePath = path.join(root, ".claude-plugin", "marketplace.json");
+const readmePath = path.join(root, "README.md");
 const stateFormatPath = path.join(root, "goal-state", "state-format.md");
 const goalReadmePath = path.join(root, "goal-state", "README.md");
 const gitignorePath = path.join(root, ".gitignore");
@@ -165,6 +166,14 @@ describe("Claude Code goal command", () => {
     assert.match(text, /^goal-state\/goals\.json$/m);
     assert.match(text, /^goal-state\/\*\.tmp$/m);
     assert.match(text, /^goal-state\/\*\.lock$/m);
+  });
+
+  it("documents project-scoped plugin install without scoping slash marketplace add", async () => {
+    const text = await fileText(readmePath);
+
+    assert.match(text, /\/plugin marketplace add bullish0x\/goal-cc\n\/plugin install goal@goal-cc --scope project/);
+    assert.doesNotMatch(text, /\/plugin marketplace add bullish0x\/goal-cc --scope project/);
+    assert.match(text, /claude plugin marketplace add https:\/\/github\.com\/bullish0x\/goal-cc\.git --scope project/);
   });
 
   it("sets, reports, pauses, resumes, completes, and clears a goal", async () => {
@@ -1185,7 +1194,8 @@ describe("Claude Code goal command", () => {
       stateFormatPath,
       goalReadmePath,
       gitignorePath,
-      path.join(root, "README.md"),
+      readmePath,
+      path.join(root, "CHANGELOG.md"),
       path.join(root, "package.json"),
       path.join(root, "CONTRIBUTING.md"),
       path.join(root, "SECURITY.md"),

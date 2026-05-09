@@ -40,8 +40,17 @@ command, helper script, and Stop hook. Restart Claude Code so everything loads.
 For a project-shared install, use Claude Code's project scope:
 
 ```text
-/plugin marketplace add bullish0x/goal-cc --scope project
+/plugin marketplace add bullish0x/goal-cc
 /plugin install goal@goal-cc --scope project
+```
+
+If `marketplace add` prompts for a scope inside Claude Code, choose `project`.
+As of 2026-05-09, the official non-interactive CLI also supports declaring the
+marketplace at project scope:
+
+```bash
+claude plugin marketplace add https://github.com/bullish0x/goal-cc.git --scope project
+claude plugin install goal@goal-cc --scope project
 ```
 
 If you are testing a local checkout before publishing, run:
