@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1 -- 2026-05-09
+
+- Fixed a Windows-specific race in `withLock` that could drop concurrent state
+  mutations. Two failure modes addressed: (1) `writeFileSync({flag:"wx"})` on
+  Windows can return `EPERM`/`EBUSY` instead of `EEXIST` when another process
+  is concurrently creating or unlinking the lock file -- the helper now treats
+  those as contended and retries; (2) the brief window between O_CREAT and the
+  write inside `wx` mode briefly exposes an empty lock file to readers, and
+  the previous code declared the unparseable content "stale" and unlinked a
+  valid lock, letting two writers through and dropping a note. The fix uses
+  the lock file's mtime as the staleness tiebreaker when content is
+  unreadable, so transient empty reads no longer override a fresh lock.
+- Added a regression test (`tests/goal-command.test.mjs`) that hammers the
+  helper with 12 concurrent `note` writers and asserts every note persists.
+
 ## 0.3.0 -- 2026-05-09
 
 - Added a `/goal doctor` read-only diagnostic command that reports command and

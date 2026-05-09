@@ -1,6 +1,6 @@
 {
   "name": "claude-code-goal-command",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A durable /goal slash command and Stop hook for long-running Claude Code work: one objective, inspectable, resumable, with soft budgets, deadlines, notes, and history.",
   "keywords": [
     "claude-code",
