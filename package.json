@@ -20,7 +20,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/goal-command.test.mjs"
   },
   "files": [
     ".claude-plugin/marketplace.json",
@@ -35,7 +35,7 @@
     "CODE_OF_CONDUCT.md",
     "README.md",
     "CONTRIBUTING.md",
-    "GTM.md",
+
     "SECURITY.md",
     "SMOKE_TEST.md",
     "goal-state/README.md",

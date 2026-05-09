@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#58a6ff"/>
+      <stop offset="100%" style="stop-color:#3fb950"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="1200" height="300" fill="url(#bg)"/>
+
+  <!-- subtle grid lines -->
+  <g opacity="0.03" stroke="#ffffff">
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="200" x2="1200" y2="200"/>
+  </g>
+
+  <!-- decorative top accent line -->
+  <rect x="0" y="0" width="1200" height="3" fill="url(#accent)"/>
+
+  <!-- prompt symbol -->
+  <text x="120" y="145" font-family="'Courier New', monospace" font-size="48" fill="#484f58" font-weight="bold">$</text>
+
+  <!-- main command -->
+  <text x="168" y="145" font-family="'Courier New', monospace" font-size="48" fill="#58a6ff" font-weight="bold">/goal</text>
+
+  <!-- cursor -->
+  <rect x="312" y="108" width="3" height="44" fill="#3fb950" rx="1.5">
+    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- subtitle -->
+  <text x="168" y="195" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" fill="#8b949e">Durable objectives for Claude Code sessions that run for hours or days</text>
+
+  <!-- bottom detail -->
+  <line x1="60" y1="260" x2="1140" y2="260" stroke="#21262d" stroke-width="1"/>
+  <text x="600" y="285" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#30363d" text-anchor="middle">budgets  .  deadlines  .  progress notes  .  stop-hook guard  .  no dependencies</text>
+</svg>

@@ -9,3 +9,5 @@ coverage/
 dist/
 .DS_Store
 .env
+GTM.md
+AGENTS.md

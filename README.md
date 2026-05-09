@@ -1,4 +1,15 @@
-# Claude Code `/goal`
+<img src=".github/assets/banner.svg" alt="/goal banner" width="100%">
+
+# /goal
+
+[![test](https://github.com/bullish0x/goal-cc/actions/workflows/test.yml/badge.svg)](https://github.com/bullish0x/goal-cc/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bullish0x/goal-cc/releases)
+
+> Give Claude Code a durable objective and it won't stop until the work is done.
+> Budgets, deadlines, progress notes, idle detection, and a Stop-hook guard that
+> keeps sessions alive across hours or days -- all in a single file with no
+> dependencies.
 
 A project slash command plus `Stop` hook for Claude Code that turns one durable
 objective into a long-running, inspectable, resumable session. Built for runs
@@ -8,43 +19,13 @@ that may last hours or days without losing track.
 /goal [<subcommand>] [--tokens N] [--deadline D] [--json] <objective>
 ```
 
-## What it gives you
-
-- One active goal per session, persisted in `goal-state/goals.json` (atomic
-  write + temp/rename, file-locked across processes).
-- Shell-safe objective capture: slash-command arguments are passed through a
-  quoted heredoc, so multiline objectives, nested quotes, apostrophes, and
-  parentheses are preserved literally instead of being re-parsed by Bash.
-- Stop-hook continuation that blocks Claude Code from stopping while a goal is
-  active, with a hard cap on auto-continuations to prevent runaway loops.
-- Soft `--tokens` budget and soft `--deadline` (durations like `30s`, `45m`,
-  `2h`, `1h30m`, `1d`); only **active** time counts toward the deadline.
-- Progress notes (`/goal note`), capped at 200 per goal, that surface in both
-  status and the Stop-hook continuation prompt so progress carries across
-  resumes.
-- Heartbeat tracking: every mutation stamps `lastActivity`. Status, JSON, and
-  Stop-hook continuation surface idle time and warn past a configurable
-  threshold so day-long sessions cannot silently stall.
-- Outcome-aware archive: `complete`, `cleared`, and `aborted <reason>` are all
-  preserved in a 50-entry history (`/goal history [N] [--json]`).
-- Refusal / hard-blocker auto-pause: if the agent's last message looks like a
-  refusal or concrete "blocked on ..." message, the Stop hook pauses the goal
-  instead of looping. Incidental uses of the word "blocked" do not auto-pause.
-- JSON output for scripting: `/goal status --json`, `/goal history --json`.
-
-For direct project installs, the command file is `.claude/commands/goal.md`,
-the Stop hook is configured in `.claude/settings.json`, and all logic lives in
-`.claude/scripts/goal-helper.mjs`. For Claude Code plugin installs, the
-marketplace lives at `.claude-plugin/marketplace.json` and the plugin package
-lives at `plugins/goal/` with `commands/`, `hooks/`, and `scripts/` at the
-plugin root. No runtime dependencies. The helper stays compatible with Node
-12.22+ because some Bash environments resolve `/usr/bin/node` to an older
-system Node. The test suite uses `node:test`, so development and CI should use
-Node 18+.
+No runtime dependencies. The helper stays compatible with Node 12.22+ because
+some Bash environments resolve `/usr/bin/node` to an older system Node. The
+test suite uses `node:test`, so development and CI should use Node 18+.
 
 ## Install
 
-### Claude Code plugin install (recommended)
+### Claude Code plugin (recommended)
 
 From Claude Code, run:
 
@@ -69,13 +50,16 @@ If you are testing a local checkout before publishing, run:
 claude --plugin-dir ./plugins/goal
 ```
 
-### Manual install
+### Manual
 
 Place this repository at the root of the project where you use Claude Code.
 Claude Code reads project commands from `.claude/commands/` and the project
 Stop hook from `.claude/settings.json`. Restart Claude Code so both load. The
 Stop hook can be disabled by deleting the `Stop` entry from
 `.claude/settings.json`.
+
+If you already have a `.claude/settings.json` with other hooks, merge the
+`"Stop"` entry into your existing file instead of replacing it.
 
 ### Heads-up for Windows users
 
@@ -135,6 +119,57 @@ test -f .claude/scripts/goal-helper.mjs && echo OK || echo MISSING
 All three must print `OK`. If you cloned from GitHub, the `.claude` directory
 is present by default (no hidden-file issues on Linux/Mac). Restart Claude Code
 so the command and Stop hook load.
+
+## Quick tour
+
+Start a goal with a soft token budget and deadline, add a progress note,
+check status, and complete when done:
+
+```text
+/goal --tokens 100K --deadline 2h Refactor the auth module to use the new token format
+
+/goal note Split out token validation into its own helper; tests passing so far
+
+/goal status
+
+/goal complete
+```
+
+The Stop hook will keep the session alive while the goal is active. If the
+agent hits a hard blocker or refusal, the goal auto-pauses instead of looping.
+Paused goals resume with `/goal resume`. See status and history as JSON with
+`--json`.
+
+## What it gives you
+
+- One active goal per session, persisted in `goal-state/goals.json` (atomic
+  write + temp/rename, file-locked across processes).
+- Shell-safe objective capture: slash-command arguments are passed through a
+  quoted heredoc, so multiline objectives, nested quotes, apostrophes, and
+  parentheses are preserved literally instead of being re-parsed by Bash.
+- Stop-hook continuation that blocks Claude Code from stopping while a goal is
+  active, with a hard cap on auto-continuations to prevent runaway loops.
+- Soft `--tokens` budget and soft `--deadline` (durations like `30s`, `45m`,
+  `2h`, `1h30m`, `1d`); only **active** time counts toward the deadline.
+- Progress notes (`/goal note`), capped at 200 per goal, that surface in both
+  status and the Stop-hook continuation prompt so progress carries across
+  resumes.
+- Heartbeat tracking: every mutation stamps `lastActivity`. Status, JSON, and
+  Stop-hook continuation surface idle time and warn past a configurable
+  threshold so day-long sessions cannot silently stall.
+- Outcome-aware archive: `complete`, `cleared`, and `aborted <reason>` are all
+  preserved in a 50-entry history (`/goal history [N] [--json]`).
+- Refusal / hard-blocker auto-pause: if the agent's last message looks like a
+  refusal or concrete "blocked on ..." message, the Stop hook pauses the goal
+  instead of looping. Incidental uses of the word "blocked" do not auto-pause.
+- JSON output for scripting: `/goal status --json`, `/goal history --json`.
+
+For direct project installs, the command file is `.claude/commands/goal.md`,
+the Stop hook is configured in `.claude/settings.json`, and all logic lives in
+`.claude/scripts/goal-helper.mjs`. For Claude Code plugin installs, the
+marketplace lives at `.claude-plugin/marketplace.json` and the plugin package
+lives at `plugins/goal/` with `commands/`, `hooks/`, and `scripts/` at the
+plugin root.
 
 ## Command reference
 
@@ -219,6 +254,7 @@ Good first contributions include:
 - Documentation improvements for install paths and platform quirks.
 
 Security reports should follow `SECURITY.md` rather than public issues.
+See `CHANGELOG.md` for version history.
 
 ## Smoke test
 
