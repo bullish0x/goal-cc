@@ -259,12 +259,15 @@ Designed for sessions that run for hours or days:
   allows Stop. Run `/goal extend --deadline D` to reactivate it with more time.
 - **Transcript-backed token budget.** If Claude Code includes `transcript_path`
   in Stop-hook input, the helper reads the transcript JSONL file, sums exposed
-  `usage` fields (`input_tokens`, cache creation/read input tokens, and
-  `output_tokens`), and stores the largest observed total so repeated Stop hooks
-  do not double count. At or above the budget it marks the goal
-  `budget_limited` and allows Stop. Run `/goal extend --tokens N` with a value
-  above observed usage to reactivate. If no transcript usage is available, the
-  token budget remains a displayed soft budget rather than fake accounting.
+  Anthropic-style `usage` fields (`input_tokens`, cache creation/read input
+  tokens, and `output_tokens`), and stores the largest observed total so
+  repeated Stop hooks do not double count. At or above the budget it marks the
+  goal `budget_limited` and allows Stop. Run `/goal extend --tokens N` with a
+  value above observed usage to reactivate. If no transcript usage is available,
+  the token budget remains a displayed soft budget rather than fake accounting.
+  When Claude Code is routed through CCR or another Anthropic-compatible
+  provider, token accounting remains best effort and depends on the usage shape
+  written into Claude Code's transcript; it is not a provider billing meter.
 - **Continuation guard.** Stop-hook continuations are bounded by
   `CLAUDE_GOAL_MAX_STOP_CONTINUES` (default 500). Past the cap, the helper
   blocks with a clear error so the agent cannot loop forever.
@@ -300,6 +303,41 @@ This project is a public GitHub repository that accepts issues, bug reports,
 and pull requests: <https://github.com/bullish0x/goal-cc>. Start with
 `CONTRIBUTING.md`, use the GitHub issue templates, and run `npm test` before
 opening a PR.
+
+## Provider compatibility roadmap
+
+`/goal` does not configure model providers, API keys, base URLs, or routers. It
+runs inside Claude Code and follows whatever endpoint and model Claude Code is
+already using, including setups that route Claude Code through CCR or another
+Anthropic-compatible provider. Provider keys and router settings should stay in
+Claude Code, CCR, user-local settings, or shell environment; `/goal` state never
+needs them.
+
+Useful future contributions should improve compatibility without duplicating
+provider configuration:
+
+- Provider-neutral token accounting: expand transcript parsing to recognize
+  common router usage shapes such as `total_tokens`, `prompt_tokens`, and
+  `completion_tokens`, while preserving the current Anthropic-style fields.
+- Token accounting compatibility notes: document which hosts or routers have
+  been verified and whether `/goal --tokens` is exact, best effort, or only a
+  displayed soft budget.
+- Redacted transcript fixtures: add tests from provider/router transcripts with
+  secrets and content removed, keeping only the usage objects needed to verify
+  token totals.
+- Provider smoke recipes: document how to confirm `/goal --tokens` and Stop-hook
+  continuation after a user's Claude Code or CCR provider setup is already
+  working.
+- Host adapter exploration: investigate whether the core goal helper can be
+  packaged separately from Claude Code command/hook wiring for other agent hosts.
+
+Security and privacy constraints for these contributions:
+
+- Do not commit provider API keys, router URLs with embedded credentials, or raw
+  transcripts.
+- Do not add live endpoint probes or provider catalogs unless there is a concrete
+  user problem that cannot be solved by existing Claude Code or CCR
+  configuration.
 
 Good first contributions include:
 
