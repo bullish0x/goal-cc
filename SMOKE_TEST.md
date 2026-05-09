@@ -32,6 +32,43 @@ npm test                                # all tests pass
 If any PowerShell `Test-Path` prints `False` or any bash check prints
 `MISSING`, re-copy with hidden items visible (see README install notes).
 
+## 1A. Direct Lifecycle Helper Check
+
+Use a disposable target to confirm install, update, and uninstall do not touch
+local settings.
+
+PowerShell:
+
+```powershell
+$target = Join-Path $env:TEMP "goal-lifecycle-smoke"
+New-Item -ItemType Directory -Force $target | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $target ".claude") | Out-Null
+'{"permissions":{"allow":["Bash(git status)"]}}' |
+  Set-Content (Join-Path $target ".claude\settings.local.json")
+
+npm run goal:install -- --project $target    # settings.local: untouched
+npm run goal:update -- --project $target     # settings.local: untouched
+npm run goal:uninstall -- --project $target  # settings.local: untouched
+
+Get-Content (Join-Path $target ".claude\settings.local.json")
+# Expect the original permissions JSON.
+```
+
+Bash:
+
+```bash
+target="${TMPDIR:-/tmp}/goal-lifecycle-smoke"
+mkdir -p "$target/.claude"
+printf '%s\n' '{"permissions":{"allow":["Bash(git status)"]}}' > "$target/.claude/settings.local.json"
+
+npm run goal:install -- --project "$target"    # settings.local: untouched
+npm run goal:update -- --project "$target"     # settings.local: untouched
+npm run goal:uninstall -- --project "$target"  # settings.local: untouched
+
+cat "$target/.claude/settings.local.json"
+# Expect the original permissions JSON.
+```
+
 ## 2. Helper Lifecycle
 
 Drive the helper directly with a temporary state file so the real

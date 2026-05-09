@@ -1,6 +1,6 @@
 {
   "name": "claude-code-goal-command",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A durable /goal slash command and Stop hook for long-running Claude Code work: one objective, inspectable, resumable, with soft budgets, deadlines, notes, and history.",
   "keywords": [
     "claude-code",
@@ -20,6 +20,9 @@
     "node": ">=18"
   },
   "scripts": {
+    "goal:install": "node scripts/goal-lifecycle.mjs install",
+    "goal:update": "node scripts/goal-lifecycle.mjs update",
+    "goal:uninstall": "node scripts/goal-lifecycle.mjs uninstall",
     "test": "node --test tests/goal-command.test.mjs"
   },
   "files": [
@@ -31,6 +34,7 @@
     "plugins/goal/commands/goal.md",
     "plugins/goal/hooks/hooks.json",
     "plugins/goal/scripts/goal-helper.mjs",
+    "scripts/goal-lifecycle.mjs",
     "CLAUDE.md",
     "CODE_OF_CONDUCT.md",
     "README.md",

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.0 -- 2026-05-09
+
+- Added a direct project lifecycle helper (`scripts/goal-lifecycle.mjs`) with
+  `npm run goal:install`, `goal:update`, and `goal:uninstall` commands. The
+  helper copies the `/goal` command, helper script, and managed `Stop` hook
+  into a target project (or removes them) without touching unrelated keys,
+  unrelated hooks, or `.claude/settings.local.json`.
+- `uninstall` preserves customized command/helper files unless `--force` is
+  passed, and removes only the managed Stop hook entry from
+  `.claude/settings.json`.
+- README: documented the lifecycle helper under a new "Direct project
+  lifecycle helper" section.
+- SMOKE_TEST: added a "Direct Lifecycle Helper Check" pass with PowerShell
+  and Bash flows that verify `settings.local.json` is never modified.
+- Tests: extended the suite to cover install, update, and uninstall behaviors
+  (settings preservation, customized-file safety, `--force`, and
+  `settings.local.json` invariance).
+
 ## 0.1.1 -- 2026-05-09
 
 - Clarified project-scoped Claude Code plugin install docs so the in-session

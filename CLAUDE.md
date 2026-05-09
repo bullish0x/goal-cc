@@ -1,6 +1,6 @@
 # Project Notes
 
-This repository contains version 0.1.1 of the `/goal` command for Claude Code.
+This repository contains version 0.2.0 of the `/goal` command for Claude Code.
 
 ## Development
 

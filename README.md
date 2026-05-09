@@ -4,7 +4,7 @@
 
 [![test](https://github.com/bullish0x/goal-cc/actions/workflows/test.yml/badge.svg)](https://github.com/bullish0x/goal-cc/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/bullish0x/goal-cc/releases)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/bullish0x/goal-cc/releases)
 
 > Give Claude Code a durable objective and it won't stop until the work is done.
 > Budgets, deadlines, progress notes, idle detection, and a Stop-hook guard that
@@ -69,6 +69,29 @@ Stop hook can be disabled by deleting the `Stop` entry from
 
 If you already have a `.claude/settings.json` with other hooks, merge the
 `"Stop"` entry into your existing file instead of replacing it.
+
+### Direct project lifecycle helper
+
+For direct project installs from a local checkout, use the lifecycle helper
+instead of manually copying files:
+
+```bash
+npm run goal:install -- --project /path/to/project
+npm run goal:update -- --project /path/to/project
+npm run goal:uninstall -- --project /path/to/project
+```
+
+The helper manages only the direct project files:
+
+- `.claude/commands/goal.md`
+- `.claude/scripts/goal-helper.mjs`
+- the managed `/goal` `Stop` hook inside `.claude/settings.json`
+
+It never reads, writes, deletes, or rewrites `.claude/settings.local.json`.
+When editing `.claude/settings.json`, it preserves unrelated keys and unrelated
+hooks. `uninstall` removes the managed Stop hook but leaves other settings in
+place, and it skips command/helper files that were customized unless you pass
+`--force`.
 
 ### Heads-up for Windows users
 
@@ -276,7 +299,8 @@ refusal / cleanup pass. Run it after every install or upgrade.
 npm test
 ```
 
-60+ behavioral tests cover lifecycle, malformed input, apostrophes,
+60+ behavioral tests cover command lifecycle, direct project
+install/update/uninstall safety, malformed input, apostrophes,
 quoted/escaped/multiline objectives, equals-form flags, deadline parsing,
 OVERDUE rendering, idle warning, Stop-hook block / pause / continuation guard,
 refusal auto-pause (positive and negative phrasings), stable cwd fallback
