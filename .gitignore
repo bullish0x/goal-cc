@@ -11,3 +11,5 @@ dist/
 .env
 GTM.md
 AGENTS.md
+.reports/
+.claude/settings.local.json
