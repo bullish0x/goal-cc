@@ -179,10 +179,18 @@ Paused goals resume with `/goal resume`. See status and history as JSON with
 - Shell-safe objective capture: slash-command arguments are passed through a
   quoted heredoc, so multiline objectives, nested quotes, apostrophes, and
   parentheses are preserved literally instead of being re-parsed by Bash.
+- Prompt-structure hardening: model-visible continuation prompts wrap escaped
+  objective text in `<untrusted_objective>` so objective text cannot break out
+  into fake higher-priority tags.
 - Stop-hook continuation that blocks Claude Code from stopping while a goal is
   active, with a hard cap on auto-continuations to prevent runaway loops.
 - Soft `--tokens` budget and soft `--deadline` (durations like `30s`, `45m`,
-  `2h`, `1h30m`, `1d`); only **active** time counts toward the deadline.
+  `2h`, `1h30m`, `1d`); only **active** time counts toward the deadline. When
+  Claude Code provides a Stop-hook `transcript_path`, the helper reads bounded
+  JSONL usage snapshots and marks the goal `budget_limited` once observed usage
+  reaches the token budget. When the deadline elapses, the Stop hook marks the
+  goal `deadline_limited` and stops automatic continuation until the user
+  extends the relevant limit.
 - Progress notes (`/goal note`), capped at 200 per goal, that surface in both
   status and the Stop-hook continuation prompt so progress carries across
   resumes.
@@ -195,6 +203,9 @@ Paused goals resume with `/goal resume`. See status and history as JSON with
   refusal or concrete "blocked on ..." message, the Stop hook pauses the goal
   instead of looping. Incidental uses of the word "blocked" do not auto-pause.
 - JSON output for scripting: `/goal status --json`, `/goal history --json`.
+- Read-only diagnostics: `/goal doctor` reports command/helper presence, Stop
+  hook count, state health, lock status, local settings presence, and session
+  candidates without mutating goal state.
 
 For direct project installs, the command file is `.claude/commands/goal.md`,
 the Stop hook is configured in `.claude/settings.json`, and all logic lives in
@@ -222,6 +233,7 @@ plugin root.
 /goal extend --tokens N --deadline D       Adjust both at once.
 /goal note <text>                          Append a progress note.
 /goal touch                                Refresh the heartbeat (defeats idle warn).
+/goal doctor                               Diagnose install, settings, state, lock, and session.
 /goal history [N]                          Show last N archived goals.
 /goal history --json                       Same, JSON.
 ```
@@ -242,7 +254,17 @@ Designed for sessions that run for hours or days:
   reason includes a triage push. Use `/goal touch` to acknowledge "still
   working on this" without making any other change.
 - **Soft deadline.** Only active time counts; pausing pauses the clock.
-  Overdue goals add a triage push to the Stop-hook reason and to status.
+  Overdue active goals add a triage push to status. If a Stop hook fires after
+  the deadline has elapsed, the helper marks the goal `deadline_limited` and
+  allows Stop. Run `/goal extend --deadline D` to reactivate it with more time.
+- **Transcript-backed token budget.** If Claude Code includes `transcript_path`
+  in Stop-hook input, the helper reads the transcript JSONL file, sums exposed
+  `usage` fields (`input_tokens`, cache creation/read input tokens, and
+  `output_tokens`), and stores the largest observed total so repeated Stop hooks
+  do not double count. At or above the budget it marks the goal
+  `budget_limited` and allows Stop. Run `/goal extend --tokens N` with a value
+  above observed usage to reactivate. If no transcript usage is available, the
+  token budget remains a displayed soft budget rather than fake accounting.
 - **Continuation guard.** Stop-hook continuations are bounded by
   `CLAUDE_GOAL_MAX_STOP_CONTINUES` (default 500). Past the cap, the helper
   blocks with a clear error so the agent cannot loop forever.
@@ -299,9 +321,10 @@ refusal / cleanup pass. Run it after every install or upgrade.
 npm test
 ```
 
-60+ behavioral tests cover command lifecycle, direct project
-install/update/uninstall safety, malformed input, apostrophes,
-quoted/escaped/multiline objectives, equals-form flags, deadline parsing,
+70+ behavioral tests cover command lifecycle, direct project
+install/update/uninstall safety, doctor diagnostics, malformed input,
+apostrophes, quoted/escaped/multiline objectives, untrusted-objective prompt
+escaping, equals-form flags, deadline parsing, deadline-limited behavior,
 OVERDUE rendering, idle warning, Stop-hook block / pause / continuation guard,
 refusal auto-pause (positive and negative phrasings), stable cwd fallback
 sessions, explicit session isolation, archive on complete and clear, abort

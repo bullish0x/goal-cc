@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.0 -- 2026-05-09
+
+- Added a `/goal doctor` read-only diagnostic command that reports command and
+  helper presence, Stop hook count, state file health, lock status, local
+  settings presence, and session candidates without mutating goal state.
+- Added `deadline_limited` and `budget_limited` statuses. The Stop hook now
+  marks goals limited (instead of looping) when a deadline elapses or the
+  observed token budget is exhausted; `/goal extend` reactivates a limited
+  goal once the relevant limit is raised above current usage.
+- Added transcript-backed token accounting. When Claude Code provides a
+  Stop-hook `transcript_path`, the helper reads bounded JSONL usage snapshots,
+  sums input/cache/output tokens, and stores the largest observed total so
+  repeated Stop hooks do not double-count. Status now reports the accounting
+  source and any error.
+- Hardened the continuation prompt against prompt-injection in objective text.
+  Objectives are XML-escaped and wrapped in `<untrusted_objective>` so they
+  cannot break out into fake higher-priority tags. The instruction header
+  marks the objective as user-provided data, not instructions.
+- Tests: extended the suite to 70+ cases covering doctor diagnostics,
+  untrusted-objective escaping, deadline-limited and budget-limited
+  transitions, transcript accounting, and reactivation via `/goal extend`.
+
 ## 0.2.0 -- 2026-05-09
 
 - Added a direct project lifecycle helper (`scripts/goal-lifecycle.mjs`) with
