@@ -1,0 +1,44 @@
+{
+  "name": "claude-code-goal-command",
+  "version": "0.1.0",
+  "description": "A durable /goal slash command and Stop hook for long-running Claude Code work: one objective, inspectable, resumable, with soft budgets, deadlines, notes, and history.",
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "goal",
+    "goal-tracking",
+    "slash-command"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bullish0x/goal-cc.git"
+  },
+  "license": "MIT",
+  "author": "Bullish0x",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "files": [
+    ".claude-plugin/marketplace.json",
+    ".claude/commands/goal.md",
+    ".claude/scripts/goal-helper.mjs",
+    ".claude/settings.json",
+    "plugins/goal/.claude-plugin/plugin.json",
+    "plugins/goal/commands/goal.md",
+    "plugins/goal/hooks/hooks.json",
+    "plugins/goal/scripts/goal-helper.mjs",
+    "CLAUDE.md",
+    "CODE_OF_CONDUCT.md",
+    "README.md",
+    "CONTRIBUTING.md",
+    "GTM.md",
+    "SECURITY.md",
+    "SMOKE_TEST.md",
+    "goal-state/README.md",
+    "goal-state/state-format.md"
+  ]
+}

@@ -1,0 +1,11 @@
+goal-state/goals.json
+goal-state/*.tmp
+goal-state/*.lock
+goal-state/*.corrupt-*
+*.stackdump
+node_modules/
+npm-debug.log*
+coverage/
+dist/
+.DS_Store
+.env

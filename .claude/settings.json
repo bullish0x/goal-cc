@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs'),path=require('path'),cp=require('child_process');let input='';process.stdin.on('data',d=>input+=d);process.stdin.on('end',()=>{let data={};try{data=JSON.parse(input||'{}')}catch{}const roots=[process.cwd(),process.env.CLAUDE_PROJECT_DIR,process.env.PWD,data.cwd].filter(Boolean);for(const root of roots){let dir=path.resolve(root);for(;;){const helper=path.join(dir,'.claude','scripts','goal-helper.mjs');if(fs.existsSync(helper)){const r=cp.spawnSync(process.execPath,[helper,'stop-hook'],{input,encoding:'utf8'});if(r.stdout)process.stdout.write(r.stdout);if(r.stderr)process.stderr.write(r.stderr);process.exit(r.status == null ? 0 : r.status)}const parent=path.dirname(dir);if(parent===dir)break;dir=parent}}console.error('goal-helper.mjs not found');process.exit(1)})\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "goal-cc",
+  "description": "Claude Code plugins for durable goal tracking and Stop-hook continuation.",
+  "owner": {
+    "name": "Bullish0x"
+  },
+  "plugins": [
+    {
+      "name": "goal",
+      "source": "./plugins/goal",
+      "description": "Durable /goal command with Stop-hook continuation, notes, deadlines, history, and shell-safe objective capture."
+    }
+  ]
+}
