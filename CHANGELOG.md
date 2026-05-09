@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 -- 2026-05-09
 
 - Clarified project-scoped Claude Code plugin install docs so the in-session
   `/plugin marketplace add` command does not include `--scope project`; the

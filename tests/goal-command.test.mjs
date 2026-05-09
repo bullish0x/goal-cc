@@ -93,7 +93,7 @@ describe("Claude Code goal command", () => {
     assert.equal(marketplace.plugins[0].source, "./plugins/goal");
 
     assert.equal(manifest.name, "goal");
-    assert.equal(manifest.version, "0.1.0");
+    assert.equal(manifest.version, "0.1.1");
     assert.equal(manifest.repository, "https://github.com/bullish0x/goal-cc");
 
     assert.match(pluginCommand, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/goal-helper\.mjs" invoke <<'__CLAUDE_GOAL_ARGUMENTS_5E2D8D9F__'/);

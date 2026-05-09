@@ -4,7 +4,7 @@
 
 [![test](https://github.com/bullish0x/goal-cc/actions/workflows/test.yml/badge.svg)](https://github.com/bullish0x/goal-cc/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bullish0x/goal-cc/releases)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/bullish0x/goal-cc/releases)
 
 > Give Claude Code a durable objective and it won't stop until the work is done.
 > Budgets, deadlines, progress notes, idle detection, and a Stop-hook guard that
